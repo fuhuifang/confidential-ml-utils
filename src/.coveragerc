@@ -1,0 +1,16 @@
+# Follows:
+# https://gist.github.com/codecov-io/bf15bde2c7db1a011b6e
+
+[run]
+branch = True
+source = confidential_ml_utils
+
+[report]
+exclude_lines =
+    if self.debug:
+    pragma: no cover
+    raise NotImplementedError
+    if __name__ == .__main__.:
+ignore_errors = True
+omit =
+    tests/*

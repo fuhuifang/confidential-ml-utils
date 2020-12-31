@@ -1,6 +1,7 @@
 # Confidential ML Utilities
 
 [![python](https://github.com/Azure/confidential-ml-utils/workflows/python/badge.svg)](https://github.com/Azure/confidential-ml-utils/actions?query=workflow%3Apython)
+[![codecov](https://codecov.io/gh/Azure/confidential-ml-utils/branch/main/graph/badge.svg?token=TEWT51C5FK)](https://codecov.io/gh/Azure/confidential-ml-utils)
 [![CodeQL](https://github.com/Azure/confidential-ml-utils/workflows/CodeQL/badge.svg)](https://github.com/Azure/confidential-ml-utils/actions?query=workflow%3ACodeQL)
 [![Component Governance](https://dev.azure.com/msdata/Vienna/_apis/build/status/aml-ds/Azure.confidential-ml-utils%20Component%20Governance?branchName=master)](https://dev.azure.com/msdata/Vienna/_build/latest?definitionId=13909&branchName=master)
 [![PyPI version](https://badge.fury.io/py/confidential-ml-utils.svg)](https://badge.fury.io/py/confidential-ml-utils)

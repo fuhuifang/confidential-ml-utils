@@ -35,9 +35,15 @@ jobs:
       run: |
         flake8 .
       working-directory: src
+    # See: https://github.com/codecov/example-python
     - name: pytest
       run: |
-        pytest src
+        pytest --cov src
+    - name: upload code coverage
+      uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
+      if: always()
     - name: build wheel
       run: |
         python setup.py sdist bdist_wheel
