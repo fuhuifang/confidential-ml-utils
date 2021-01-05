@@ -7,68 +7,203 @@ the exception message itself.
 """
 
 
+import argparse
+from collections.abc import Iterable
 import functools
-import io
-from traceback import TracebackException
-from typing import Callable
-import sys
 import re
+import sys
 import time
+from traceback import TracebackException
+
+# https://stackoverflow.com/a/38569536
+from typing import Callable, Optional, Set, TextIO, Union
 
 
 PREFIX = "SystemLog:"
 SCRUB_MESSAGE = "**Exception message scrubbed**"
 
 
-def scrub_exception_traceback(
-    exception: TracebackException,
-    scrub_message: str = SCRUB_MESSAGE,
-    allow_list: list = [],
-) -> TracebackException:
+class PublicValueError(ValueError):
     """
-    Scrub exception messages from a `TracebackException` object. The messages
-    will be replaced with `exceptions.SCRUB_MESSAGE`.
+    Value error with public message. Exceptions of this type raised under
+    `prefix_stack_trace` or `print_prefixed_stack_trace_and_raise` will have
+    the message prefixed with `PREFIX` in both the printed stack trace and the
+    re-raised exception.
     """
-    if not is_exception_allowed(exception, allow_list):
-        exception._str = scrub_message
-    if exception.__cause__:
-        exception.__cause__ = scrub_exception_traceback(
-            exception.__cause__, scrub_message, allow_list
+
+
+class PublicRuntimeError(RuntimeError):
+    """
+    Runtime error with public message. Exceptions of this type raised under
+    `prefix_stack_trace` or `print_prefixed_stack_trace_and_raise` will have
+    the message prefixed with `PREFIX` in both the printed stack trace and the
+    re-raised exception.
+    """
+
+
+class PublicArgumentError(argparse.ArgumentError):
+    """
+    Argument error with public message. Exceptions of this type raised under
+    `prefix_stack_trace` or `print_prefixed_stack_trace_and_raise` will have
+    the message prefixed with `PREFIX` in both the printed stack trace and the
+    re-raised exception.
+    """
+
+
+class PublicKeyError(KeyError):
+    """
+    Key error with public message. Exceptions of this type raised under
+    `prefix_stack_trace` or `print_prefixed_stack_trace_and_raise` will have
+    the message prefixed with `PREFIX` in both the printed stack trace and the
+    re-raised exception.
+    """
+
+
+class PublicTypeError(TypeError):
+    """
+    Type error with public message. Exceptions of this type raised under
+    `prefix_stack_trace` or `print_prefixed_stack_trace_and_raise` will have
+    the message prefixed with `PREFIX` in both the printed stack trace and the
+    re-raised exception.
+    """
+
+
+default_allow_list = [
+    PublicValueError.__name__,
+    PublicRuntimeError.__name__,
+    PublicArgumentError.__name__,
+    PublicKeyError.__name__,
+    PublicTypeError.__name__,
+]
+
+
+def _attribute_transformer(prefix: str, scrub_message: str, keep: bool) -> Callable:
+    """
+    Create a function which may be used to transform exception attributes.
+
+    If an attribute is string-valued, apply the logic keep? prefix + attr: prefix
+    + scrub_message.
+
+    If the attribute is iterable, apply this logic to each member of the
+    attribute.
+
+    If the attribute is callable, don't change it.
+
+    If it is neither, replace it with None to ensure no private data leaks.
+    """
+
+    def inner(o):
+        rv = o
+        if isinstance(o, str):
+            if keep:
+                rv = prefix + o
+            else:
+                rv = prefix + scrub_message
+        elif isinstance(o, Iterable):
+            rv = type(o)(map(inner, o))
+        elif callable(o):
+            rv = rv
+        else:
+            rv = None
+
+        return rv
+
+    return inner
+
+
+def scrub_exception(
+    exception: Optional[BaseException],
+    scrub_message: str,
+    prefix: str,
+    keep_message: bool,
+    allow_list: list,
+    _seen: Optional[Set[int]] = None,
+) -> Optional[BaseException]:
+    """
+    Recursively scrub all potentially private data from an exception, using the
+    logic in `_attribute_transformer`.
+
+    Inspired by Dan Schwartz's closed-source implementation:
+    https://dev.azure.com/eemo/TEE/_git/TEEGit?path=%2FOffline%2FFocusedInbox%2FComTriage%2Fcomtriage%2Futils%2Fscrubber.py&version=GBcompliant%2FComTriage&_a=content
+
+    which is closely based on the CPython implementation of the
+    TracebackException class:
+    https://github.com/python/cpython/blob/master/Lib/traceback.py#L478
+    """
+    if not exception:
+        return None
+
+    # Handle loops in __cause__ or __context__ .
+    if _seen is None:
+        _seen = set()
+    _seen.add(id(exception))
+
+    # Gracefully handle being called with no type or value.
+    if exception.__cause__ is not None and id(exception.__cause__) not in _seen:
+        exception.__cause__ = scrub_exception(
+            exception.__cause__,
+            scrub_message,
+            prefix,
+            keep_message,
+            allow_list,
+            _seen,
         )
-    if exception.__context__:
-        exception.__context__ = scrub_exception_traceback(
-            exception.__context__, scrub_message, allow_list
+    if exception.__context__ is not None and id(exception.__context__) not in _seen:
+        exception.__context__ = scrub_exception(
+            exception.__context__,
+            scrub_message,
+            prefix,
+            keep_message,
+            allow_list,
+            _seen,
         )
+
+    keep = keep_message or is_exception_allowed(exception, allow_list)
+    transformer = _attribute_transformer(prefix, scrub_message, keep)
+
+    for attr in dir(exception):
+        if attr and not attr.startswith("__"):
+            value = getattr(exception, attr)
+            new_value = transformer(value)
+            setattr(exception, attr, new_value)
+
     return exception
 
 
-def is_exception_allowed(exception: TracebackException, allow_list: list) -> bool:
+def is_exception_allowed(
+    exception: Union[BaseException, TracebackException], allow_list: list
+) -> bool:
     """
-    Check if message is allowed
+    Check if message is allowed, either by `allow_list`, or `default_allow_list`.
+
     Args:
         exception (TracebackException): the exception to test
         allow_list (list): list of regex expressions. If any expression matches
             the exception name or message, it will be considered allowed.
+
     Returns:
         bool: True if message is allowed, False otherwise.
     """
+    if not isinstance(exception, TracebackException):
+        exception = TracebackException.from_exception(exception)
+
     # empty list means all messages are allowed
-    for expr in allow_list:
-        if re.search(expr, exception._str, re.IGNORECASE):
+    for expr in allow_list + default_allow_list:
+        if re.search(expr, getattr(exception, "_str", ""), re.IGNORECASE):
             return True
-        if re.search(expr, exception.exc_type.__name__, re.IGNORECASE):
+        if re.search(expr, getattr(exception.exc_type, "__name__", ""), re.IGNORECASE):
             return True
     return False
 
 
 def print_prefixed_stack_trace_and_raise(
-    file: io.TextIOBase = sys.stderr,
+    file: TextIO = sys.stderr,
     prefix: str = PREFIX,
     scrub_message: str = SCRUB_MESSAGE,
     keep_message: bool = False,
     allow_list: list = [],
     add_timestamp: bool = False,
-    err: BaseException = None,
+    err: Optional[BaseException] = None,
 ) -> None:
     """
     Print the current exception and stack trace to `file` (usually client
@@ -80,39 +215,24 @@ def print_prefixed_stack_trace_and_raise(
             empty all messages will be srubbed.
         err: the error that was thrown. None accepted for backwards compatibility.
     """
-    # scrub the log
-    exception = TracebackException(*sys.exc_info())
-    if keep_message:
-        scrubbed_exception = exception
-    else:
-        scrubbed_exception = scrub_exception_traceback(
-            exception, scrub_message, allow_list
-        )
-    traceback = list(scrubbed_exception.format())
-    for execution in traceback:
+    if err is None:
+        err = sys.exc_info()[1]
+    scrubbed_err = scrub_exception(err, scrub_message, prefix, keep_message, allow_list)
+
+    tb_exception = TracebackException.from_exception(scrubbed_err)
+
+    for execution in tb_exception.format():
         if "return function(*func_args, **func_kwargs)" in execution:
             # Do not show the stack trace for our decorator.
             continue
-        lines = execution.splitlines()
-        for line in lines:
+        for line in execution.splitlines():
             if add_timestamp:
                 current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 print(f"{prefix} {current_time} {line}", file=file)
             else:
                 print(f"{prefix} {line}", file=file)
 
-    # raise compliant error
-    if not err:
-        raise
-    elif keep_message or is_exception_allowed(exception, allow_list):
-        if not err.args:
-            raise type(err) from err
-        else:
-            message = f"{prefix} {err.args[0]}"
-            raise type(err)(message) from err
-    else:
-        message = f"{prefix} {scrub_message}"
-        raise type(err)(message) from err
+    raise scrubbed_err
 
 
 class _PrefixStackTraceWrapper:
@@ -127,7 +247,7 @@ class _PrefixStackTraceWrapper:
 
     def __init__(
         self,
-        file: io.TextIOBase,
+        file: TextIO,
         disable: bool,
         prefix: str,
         scrub_message: str,
@@ -150,9 +270,13 @@ class _PrefixStackTraceWrapper:
             Create a wrapper which catches exceptions thrown by `function`,
             scrub exception messages, and logs the prefixed stack trace.
             """
+            caught_err = None
             try:
                 return function(*func_args, **func_kwargs)
             except BaseException as err:
+                caught_err = err
+
+            if caught_err:
                 print_prefixed_stack_trace_and_raise(
                     self.file,
                     self.prefix,
@@ -160,15 +284,15 @@ class _PrefixStackTraceWrapper:
                     self.keep_message,
                     self.allow_list,
                     self.add_timestamp,
-                    err,
+                    caught_err,
                 )
 
         return function if self.disable else wrapper
 
 
 def prefix_stack_trace(
-    file: io.TextIOBase = sys.stderr,
-    disable: bool = sys.flags.debug,
+    file: TextIO = sys.stderr,
+    disable: bool = bool(sys.flags.debug),
     prefix: str = PREFIX,
     scrub_message: str = SCRUB_MESSAGE,
     keep_message: bool = False,
@@ -194,8 +318,8 @@ def prefix_stack_trace(
 class PrefixStackTrace:
     def __init__(
         self,
-        file: io.TextIOBase = sys.stderr,
-        disable: bool = sys.flags.debug,
+        file: TextIO = sys.stderr,
+        disable: bool = bool(sys.flags.debug),
         prefix: str = PREFIX,
         scrub_message: str = SCRUB_MESSAGE,
         keep_message: bool = False,

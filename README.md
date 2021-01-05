@@ -7,6 +7,8 @@
 [![PyPI version](https://badge.fury.io/py/confidential-ml-utils.svg)](https://badge.fury.io/py/confidential-ml-utils)
 [![Python versions](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/confidential-ml-utils)](https://pypi.org/project/confidential-ml-utils/)
+[![code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![license: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
 Confidential ML is the practice of training machine learning models without
 seeing the training data. It is needed in many enterprises to satisfy the
@@ -17,11 +19,29 @@ emphasis on using PyTorch in
  
 ## Using
 
-VS Code Snippets see:
-[docs/snippets](https://github.com/Azure/confidential-ml-utils/blob/master/docs/snippets/README.md)
-
 Compliant logging library see:
 [docs/logging](https://github.com/Azure/confidential-ml-utils/blob/master/docs/logging/README.md)
+
+Minimal use case:
+
+```python
+from confidential_ml_utils import DataCategory, enable_confidential_logging, prefix_stack_trace
+import logging
+
+
+@prefix_stack_trace(allow_list=["FileNotFoundError", "TypeError"])
+def main():
+    enable_confidential_logging()
+
+    log = logging.getLogger(__name__)
+    log.info("Hi there", category=DataCategory.PUBLIC)
+
+if __name__ == "__main__":
+    main()
+```
+
+VS Code Snippets see:
+[docs/snippets](https://github.com/Azure/confidential-ml-utils/blob/master/docs/snippets/README.md)
 
 ## Contributing
 

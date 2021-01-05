@@ -6,9 +6,11 @@ Utilities around logging data which may or may not contain private content.
 """
 
 
+from typing import Optional
 from confidential_ml_utils.constants import DataCategory
 import logging
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
+import sys
 from threading import Lock
 import warnings
 
@@ -28,7 +30,7 @@ def set_prefix(prefix: str) -> None:
         _PREFIX = prefix
 
 
-def get_prefix() -> str:
+def get_prefix() -> Optional[str]:
     """
     Obtain the current global prefix to use when logging public (non-private)
     data.
@@ -141,6 +143,17 @@ class ConfidentialLogger(logging.getLoggerClass()):
             self._log(CRITICAL, msg, category, args, **kwargs)
 
 
+_logging_basic_config_set_warning = """
+********************************************************************************
+The root logger already has handlers set! As a result, the behavior of this
+library is undefined. If running in Python >= 3.8, this library will attempt to
+call logging.basicConfig(force=True), which will remove all existing root
+handlers. See https://stackoverflow.com/q/20240464 and
+https://github.com/Azure/confidential-ml-utils/issues/33 for more information.
+********************************************************************************
+"""
+
+
 def enable_confidential_logging(prefix: str = "SystemLog:", **kwargs) -> None:
     """
     The default format is `logging.BASIC_FORMAT` (`%(levelname)s:%(name)s:%(message)s`).
@@ -149,6 +162,9 @@ def enable_confidential_logging(prefix: str = "SystemLog:", **kwargs) -> None:
     string `%(prefix)` will work.
 
     Set the format using the `format` kwarg.
+
+    If running in Python >= 3.8, will attempt to add `force=True` to the kwargs
+    for logging.basicConfig.
 
     After calling this method, use the kwarg `category` to pass in a value of
     `DataCategory` to denote data category. The default is `PRIVATE`. That is,
@@ -166,6 +182,14 @@ def enable_confidential_logging(prefix: str = "SystemLog:", **kwargs) -> None:
     # Ensure that all loggers created via `logging.getLogger` are instances of
     # the `ConfidentialLogger` class.
     logging.setLoggerClass(ConfidentialLogger)
+
+    if len(logging.root.handlers) > 0:
+        p = get_prefix()
+        for line in _logging_basic_config_set_warning.splitlines():
+            print(f"{p}{line}", file=sys.stderr)
+
+    if "force" not in kwargs and sys.version_info >= (3, 8):
+        kwargs["force"] = True
 
     old_root = logging.root
 

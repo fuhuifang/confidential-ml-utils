@@ -18,6 +18,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      # Keep entire history for better code coverage reports.
+      with:
+        fetch-depth: 0
     - name: Check License Lines
       uses: kt3k/license_checker@v1.0.3
     - name: Set up Python ${{ matrix.python-version }}
@@ -35,10 +38,12 @@ jobs:
       run: |
         flake8 .
       working-directory: src
+      if: always()
     # See: https://github.com/codecov/example-python
     - name: pytest
       run: |
         pytest --cov src
+      if: always()
     - name: upload code coverage
       uses: codecov/codecov-action@v1
       with:

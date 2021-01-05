@@ -5,7 +5,11 @@ Install the latest version in your Python evironment from `PyPi`: [confidential-
 
 First execute `pip install confidential-ml-utils` to install this library. Then
 wrap any methods which may throw an exception with the decorator
-`prefix_stack_trace`. Here's a simple example.
+`prefix_stack_trace`. Here's a simple example. Your code may explicitly raise
+the `Public*` exceptions (`PublicValueError`, `PublicRuntimeError`,
+`PublicArgumentError`, `PublicKeyError`, `PublicTypeError`) when you know that
+the content of the exception does not contain any private content. The messages
+in these exceptions will be preserved, even if `keep_message` is set to `False`.
 
 ```python
 from confidential_ml_utils.exceptions import prefix_stack_trace
@@ -42,6 +46,9 @@ Use this library with `with` statements:
 
 Using this library directly inside `try` / `except` statements:
 [try-except.py](./try-except.py).
+
+Using the `Public*` exception types:
+[public-exceptions.py](./public-exceptions.py).
 
 ## Exception or Stack trace parsing
 

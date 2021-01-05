@@ -7,6 +7,7 @@ import io
 import logging
 import pytest
 import re
+import sys
 
 
 def test_basic_config():
@@ -90,3 +91,24 @@ def test_all_the_stuff():
     log.info("PRIVATE", category=DataCategory.PRIVATE)
 
     log.info("PRIVATE2")
+
+
+@pytest.mark.skipif(sys.version_info < (3, 8), reason="Requires Python >= 3.8")
+def test_enable_confidential_logging_sets_force():
+    # Pytest adds handlers to the root logger by default.
+    initial_handlers = list(logging.root.handlers)
+
+    confidential_ml_utils.enable_confidential_logging()
+
+    assert len(logging.root.handlers) == 1
+    assert all(h not in logging.root.handlers for h in initial_handlers)
+
+
+def test_warn_if_root_handlers_already_exist(capsys):
+    # Pytest adds handlers to the root logger by default.
+
+    confidential_ml_utils.enable_confidential_logging()
+
+    # https://docs.pytest.org/en/stable/capture.html
+    stderr = capsys.readouterr().err
+    assert "SystemLog:The root logger already has handlers set!" in stderr

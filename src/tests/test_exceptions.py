@@ -12,6 +12,13 @@ from confidential_ml_utils.exceptions import (
     PREFIX,
     is_exception_allowed,
     PrefixStackTrace,
+    PublicArgumentError,
+    PublicRuntimeError,
+    PublicValueError,
+    PublicKeyError,
+    PublicTypeError,
+    print_prefixed_stack_trace_and_raise,
+    scrub_exception,
 )
 from traceback import TracebackException
 
@@ -169,7 +176,7 @@ def test_prefix_stack_trace_nested_exception(keep_message, allow_list, expected_
         except ModuleNotFoundError:
             raise ArithmeticError()
 
-    with pytest.raises(Exception):
+    with pytest.raises(ArithmeticError):
         function2()
 
     assert ("No module named" in file.getvalue()) == expected_result
@@ -239,7 +246,7 @@ def test_prefix_stack_trace_throws_correctly(keep_message, allow_list):
     def function():
         raise e_type(message)
 
-    with pytest.raises(ValueError) as info:
+    with pytest.raises(e_type) as info:
         function()
 
     if keep_message is True or is_exception_allowed(
@@ -290,3 +297,85 @@ def test_prefix_stack_trace_respects_add_timestamp(add_timestamp):
     timestamp_match = re.search(timestamp_regex, file_value.split("\n")[0])
     assert bool(timestamp_match) == add_timestamp
     print("hello")
+
+
+@pytest.mark.parametrize(
+    "exc_type,msg",
+    [
+        (PublicRuntimeError, "message"),
+        (PublicValueError, "message"),
+        (PublicKeyError, "message"),
+        (PublicTypeError, "message"),
+    ],
+)
+def test_public_exception_messages_are_preserved(exc_type, msg):
+    file = io.StringIO()
+
+    with pytest.raises(exc_type):
+        with PrefixStackTrace(file=file):
+            raise exc_type(msg)
+
+    file_value = file.getvalue()
+
+    assert re.search(fr"SystemLog\:.*{msg}", file_value)
+
+
+def test_public_argument_error_message_is_preserved():
+    file = io.StringIO()
+
+    with pytest.raises(PublicArgumentError):
+        with PrefixStackTrace(file=file):
+            raise PublicArgumentError(None, "message")
+
+    file_value = file.getvalue()
+
+    assert re.search(r"SystemLog\:.*message", file_value)
+
+
+@pytest.mark.parametrize("message,exc_type", [("hi", ArithmeticError)])
+def test_default_allow_list_respected(message, exc_type):
+    from confidential_ml_utils.exceptions import default_allow_list
+
+    default_allow_list.clear()
+    default_allow_list.append(message)
+
+    file = io.StringIO()
+
+    @prefix_stack_trace(file)
+    def function():
+        raise exc_type(message)
+
+    with pytest.raises(exc_type):
+        function()
+
+    file_value = file.getvalue()
+
+    assert PREFIX in file_value
+    assert message in file_value
+
+
+def test_print_prefixed_stack_trace_and_raise_works_with_null_exception():
+    file = io.StringIO()
+
+    with pytest.raises(Exception):
+        try:
+            raise Exception("boo")
+        except BaseException:
+            print_prefixed_stack_trace_and_raise(file)
+
+    assert PREFIX in file.getvalue()
+
+
+def test_scrub_exception_works_with_loop_in_traceback():
+    """
+    This test will fail if `scrub_exception` doesn't use `_seen`.
+    """
+    try:
+        try:
+            raise Exception("boo")
+        except Exception as e:
+            raise e from e
+    except BaseException as be:
+        scrubbed = scrub_exception(be, SCRUB_MESSAGE, PREFIX, True, [])
+
+    assert scrubbed is not None
