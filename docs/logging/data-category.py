@@ -19,8 +19,8 @@ if __name__ == "__main__":
     )
 
     # Output will be:
-    # WARNING:30:private info
-    # SystemLog:WARNING:30:public info
+    # WARNING:root:private info
+    # SystemLog:WARNING:root:public info
     logging.warning("private info")
     logging.warning("public info", category=DataCategory.PUBLIC)
 

@@ -38,7 +38,7 @@ def get_prefix() -> Optional[str]:
     return _PREFIX
 
 
-class ConfidentialLogger(logging.getLoggerClass()):
+class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
     """
     Subclass of the default logging class with an explicit `category` parameter
     on all logging methods. It will pass an `extra` param with `prefix` key
@@ -52,7 +52,7 @@ class ConfidentialLogger(logging.getLoggerClass()):
     """
 
     def __init__(self, name: str):
-        super(ConfidentialLogger, self).__init__(name)
+        super().__init__(name)  # type: ignore
 
     def _log(self, level, msg, category, args, **kwargs):
         p = ""
@@ -193,12 +193,12 @@ def enable_confidential_logging(prefix: str = "SystemLog:", **kwargs) -> None:
 
     old_root = logging.root
 
-    root = ConfidentialLogger(logging.root.getEffectiveLevel())
+    root = ConfidentialLogger(logging.root.name)
     root.handlers = old_root.handlers
 
     logging.root = root
-    logging.Logger.root = root
-    logging.Logger.manager = logging.Manager(root)
+    logging.Logger.root = root  # type: ignore
+    logging.Logger.manager = logging.Manager(root)  # type: ignore
 
     # https://github.com/kivy/kivy/issues/6733
     logging.basicConfig(**kwargs)

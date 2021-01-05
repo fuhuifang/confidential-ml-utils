@@ -49,6 +49,20 @@ jobs:
       with:
         fail_ci_if_error: true
       if: always()
+
+    # This and the next step follow:
+    # https://gist.github.com/alukach/6f3a371e9af600e417aca1b36806ad72
+    - name: setup node.js for pyright
+      uses: actions/setup-node@v1
+      with:
+        node-version: 12
+    - name: pyright
+      run: |
+        npm install -g pyright
+        pyright
+      working-directory: src
+      if: always()
+
     - name: build wheel
       run: |
         python setup.py sdist bdist_wheel

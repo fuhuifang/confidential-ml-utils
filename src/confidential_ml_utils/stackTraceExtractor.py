@@ -4,7 +4,11 @@
 import glob
 import os
 import re
-from confidential_ml_utils.exceptions import print_prefixed_stack_trace_and_raise
+from typing import List
+from confidential_ml_utils.exceptions import (
+    PublicValueError,
+    print_prefixed_stack_trace_and_raise,
+)
 
 
 class StackTraceExtractor:
@@ -102,7 +106,7 @@ class StackTraceExtractor:
                     print(f"{self.prefix}: line: {m.groupdict()['line']}")
                     print(f"{self.prefix}: method: {m.groupdict()['method']}")
 
-    def _get_files(self, path) -> list:
+    def _get_files(self, path) -> List[str]:
         if os.path.isfile(path):
             print(f"{self.prefix}: Input is a file")
             return [path]
@@ -110,6 +114,8 @@ class StackTraceExtractor:
             print(f"{self.prefix}: Input is a directory")
             files = glob.glob(path + "/*.err")
             return files
+        else:
+            raise PublicValueError("Provided path is neither a file nor a directory")
 
     def extract(self, path: str) -> None:
         """

@@ -100,7 +100,7 @@ def _attribute_transformer(prefix: str, scrub_message: str, keep: bool) -> Calla
             else:
                 rv = prefix + scrub_message
         elif isinstance(o, Iterable):
-            rv = type(o)(map(inner, o))
+            rv = type(o)(map(inner, o))  # type: ignore
         elif callable(o):
             rv = rv
         else:
@@ -219,7 +219,7 @@ def print_prefixed_stack_trace_and_raise(
         err = sys.exc_info()[1]
     scrubbed_err = scrub_exception(err, scrub_message, prefix, keep_message, allow_list)
 
-    tb_exception = TracebackException.from_exception(scrubbed_err)
+    tb_exception = TracebackException.from_exception(scrubbed_err)  # type: ignore
 
     for execution in tb_exception.format():
         if "return function(*func_args, **func_kwargs)" in execution:
@@ -232,7 +232,7 @@ def print_prefixed_stack_trace_and_raise(
             else:
                 print(f"{prefix} {line}", file=file)
 
-    raise scrubbed_err
+    raise scrubbed_err  # type: ignore
 
 
 class _PrefixStackTraceWrapper:
