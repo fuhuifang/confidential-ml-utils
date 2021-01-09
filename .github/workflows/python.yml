@@ -15,7 +15,7 @@ jobs:
       matrix:
         # https://ncorti.com/blog/howto-github-actions-build-matrix
         os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9, 3.10-dev]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -64,7 +64,7 @@ jobs:
         npm install -g pyright
         pyright
       working-directory: src
-      if: always()
+      if: ${{ matrix.python-version != '3.10-dev' }}
 
     - name: build wheel
       run: |
