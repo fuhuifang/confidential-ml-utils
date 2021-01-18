@@ -21,8 +21,8 @@ jobs:
     - name: pip install
       run: pip install -r src/requirements.txt
 
-    - name: Deploy docs
-      uses: mhausenblas/mkdocs-deploy-gh-pages@master
+    - name: deploy docs
+      run: mkdocs gh-deploy
+      working-directory: src
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        CONFIG_FILE: src/mkdocs.yml

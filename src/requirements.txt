@@ -1,5 +1,6 @@
 black==20.8b1
 flake8==3.8.4
+markdown-include==0.6.0
 mkdocstrings==0.14.0
 mkdocs-material==6.2.5
 pytest==6.2.1
