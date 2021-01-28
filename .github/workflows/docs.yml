@@ -31,6 +31,6 @@ jobs:
     # https://docs.github.com/en/actions/reference/authentication-in-a-workflow
     - name: deploy docs
       run: |
-        git config http.extraheader="Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
+        git config http.extraheader "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
         mkdocs gh-deploy
       working-directory: src
