@@ -4,7 +4,9 @@ on:
   push:
     branches:
     - main
-    - dkmiller/mkdocs
+  pull_request:
+    branches:
+    - main
 
 jobs:
   build:
@@ -21,6 +23,11 @@ jobs:
     - name: pip install
       run: pip install -r src/requirements.txt
 
+    - name: build docs
+      run: mkdocs build
+      working-directory: src
+
+    # TODO: add if: github.ref == 'refs/heads/main'
     - name: deploy docs
       run: mkdocs gh-deploy
       working-directory: src
