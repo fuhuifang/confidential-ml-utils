@@ -45,8 +45,15 @@ jobs:
     # See: https://github.com/codecov/example-python
     - name: pytest
       run: |
-        pytest --cov src
+        pytest --cov --junitxml=test-result.xml src
       if: always()
+    - name: publish test results
+      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8' }}
+      uses: EnricoMi/publish-unit-test-result-action@v1.6
+      with:
+        check_name: Unit Test Results
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        files: test-result.xml
     - name: upload code coverage
       uses: codecov/codecov-action@v1
       with:
