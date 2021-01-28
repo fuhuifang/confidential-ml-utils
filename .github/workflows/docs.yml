@@ -28,8 +28,9 @@ jobs:
       working-directory: src
 
     # TODO: add if: github.ref == 'refs/heads/main'
+    # https://docs.github.com/en/actions/reference/authentication-in-a-workflow
     - name: deploy docs
-      run: mkdocs gh-deploy
+      run: |
+        git -c http.extraheader="Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
+        mkdocs gh-deploy
       working-directory: src
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
