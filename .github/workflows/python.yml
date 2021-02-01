@@ -63,7 +63,7 @@ jobs:
     # This and the next step follow:
     # https://gist.github.com/alukach/6f3a371e9af600e417aca1b36806ad72
     - name: setup node.js for pyright
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v2.1.4
       with:
         node-version: 12
     - name: pyright
