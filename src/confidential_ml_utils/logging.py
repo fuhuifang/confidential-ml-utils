@@ -6,12 +6,13 @@ Utilities around logging data which may or may not contain private content.
 """
 
 
-from typing import Optional
+from argparse import Namespace
 from confidential_ml_utils.constants import DataCategory
 import logging
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 import sys
 from threading import Lock
+from typing import Any, Dict,Optional, Union
 import warnings
 
 
@@ -202,3 +203,101 @@ def enable_confidential_logging(prefix: str = "SystemLog:", **kwargs) -> None:
 
     # https://github.com/kivy/kivy/issues/6733
     logging.basicConfig(**kwargs)
+
+
+try:
+    from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+    from pytorch_lightning.utilities import rank_zero_only
+    PYTORCH_LIGHTNING_INSTALLED = True
+except ImportError:
+    LightningLoggerBase = None
+    rank_zero_experiment = None
+    rank_zero_only = None
+    PYTORCH_LIGHTNING_INSTALLED = False
+
+class ConfidentialConsoleLogger(LightningLoggerBase):  # type: ignore
+    """
+    Quick and dirty implementation of a PyTorch Lightning logger that plays
+    nicely with compliance requirements (`SystemLog:` prefix), that can be
+    used when inside detonation chambers.
+    """
+
+    def __init__(self):
+        if not PYTORCH_LIGHTNING_INSTALLED:
+            raise Exception("")
+
+        super().__init__()
+        self.logger = logging.getLogger(__name__)
+
+    @property
+    @rank_zero_experiment
+    def experiment(self):
+        return "confidential_experiment"
+
+    @property
+    def name(self):
+        return "confidential_name"
+
+    @property
+    def run_id(self):
+        return "confidential_run_id"
+
+    @property
+    def version(self):
+        return "confidential_version"
+
+    @rank_zero_only
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]):
+        params = self._convert_params(params)
+        params = self._flatten_dict(params)
+        for key, value in params.items():
+            self.logger.info(f"Hyperparameter: {key} -> {value}", category=DataCategory.PUBLIC)
+        else:
+            self.logger.info("No hyperparameters to log.", category=DataCategory.PUBLIC)
+
+    @rank_zero_only
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+        for name, value in metrics.items():
+            self.logger.info(
+                f"Metric (step {step}): {name} -> {value}", category=DataCategory.PUBLIC
+            )
+
+
+# https://github.com/MicrosoftDocs/azure-docs/issues/66065
+
+
+
+
+class ConfidentialParallelRunStepLogger(logging.Logger):
+    """
+    TODO:
+    https://github.com/MicrosoftDocs/azure-docs/issues/66065
+    https://docs.microsoft.com/en-us/azure/machine-learning/how-to-debug-parallel-run-step#how-do-i-log-from-my-user-script-from-a-remote-context
+
+    How to use?
+
+    ```
+    def init():
+        logger = ConfidentialParallelRunStepLogger(__name__)
+    
+    def run(mini_batch):
+        # TODO: singleton pattern.
+    ```
+    """
+
+    def __init__(self):
+        super().__init__(__name__)
+        try:
+            from azureml_user.parallel_run import EntryScript  # type: ignore
+            self.logger = EntryScript().logger
+        except ImportError:
+            # TODO: log some kind of warning.
+            self.logger = logging.getLogger(__name__)
+
+    def _log(self, level, msg, category, args, **kwargs):
+        # TODO: EntryScript.logger...
+        p = ""
+        if category == DataCategory.PUBLIC:
+            p = get_prefix()
+        
+        self.logger._log(level, msg, args, extra={"prefix": p}, **kwargs)
