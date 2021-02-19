@@ -103,7 +103,7 @@ def _attribute_transformer(prefix: str, scrub_message: str, keep: bool) -> Calla
             rv = type(o)(map(inner, o))  # type: ignore
         elif callable(o):
             rv = rv
-        else:
+        elif not keep:
             rv = None
 
         return rv

@@ -5,6 +5,10 @@ import io
 import pickle
 import pytest
 import re
+import sys
+from traceback import TracebackException
+
+
 from confidential_ml_utils.exceptions import (
     _PrefixStackTraceWrapper,
     prefix_stack_trace,
@@ -20,7 +24,6 @@ from confidential_ml_utils.exceptions import (
     print_prefixed_stack_trace_and_raise,
     scrub_exception,
 )
-from traceback import TracebackException
 
 
 @pytest.mark.parametrize(
@@ -44,6 +47,22 @@ def test_prefix_stack_trace_preserves_exception_type(message: str, exec_type):
     log_lines = file.getvalue()
     assert exec_type.__name__ in log_lines
     assert SCRUB_MESSAGE in log_lines
+
+
+def test_prefix_stack_trace_works_with_sys_exit():
+    file = io.StringIO()
+
+    @prefix_stack_trace(file, allow_list=["SystemExit"])
+    def function():
+        sys.exit(1)
+
+    with pytest.raises(SystemExit) as e:
+        function()
+
+    assert e.value.args[0] == 1
+
+    log_lines = file.getvalue()
+    assert "SystemExit: 1" in log_lines
 
 
 def test_prefix_stack_trace_succeeds_when_no_message():

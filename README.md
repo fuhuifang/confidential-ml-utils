@@ -29,7 +29,7 @@ from confidential_ml_utils import DataCategory, enable_confidential_logging, pre
 import logging
 
 
-@prefix_stack_trace(allow_list=["FileNotFoundError", "TypeError"])
+@prefix_stack_trace(allow_list=["FileNotFoundError", "SystemExit", "TypeError"])
 def main():
     enable_confidential_logging()
 
