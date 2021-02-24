@@ -54,7 +54,16 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
     def __init__(self, name: str):
         super().__init__(name)  # type: ignore
 
-    def _log(self, level, msg, category, args, **kwargs):
+    def _log(self, level, msg, args, **kwargs):
+        """
+        Note: Signature here matches superclass `_log` to avoid mismatch issues.
+        The `category` is thus assumed to be in `kwargs` and is popped
+        """
+        try:
+            category = kwargs.pop("category")
+        except KeyError:
+            raise TypeError(f"Required argument `category` not provided")
+
         p = ""
         if category == DataCategory.PUBLIC:
             p = get_prefix()
@@ -74,7 +83,8 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.debug("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(DEBUG):
-            self._log(DEBUG, msg, category, args, **kwargs)
+            kwargs['category'] = category
+            self._log(DEBUG, msg, args, **kwargs)
 
     def info(
         self, msg: str, category: DataCategory = DataCategory.PRIVATE, *args, **kwargs
@@ -88,7 +98,8 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.info("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(INFO):
-            self._log(INFO, msg, category, args, **kwargs)
+            kwargs['category'] = category
+            self._log(INFO, msg, args, **kwargs)
 
     def warning(
         self, msg: str, category: DataCategory = DataCategory.PRIVATE, *args, **kwargs
@@ -102,7 +113,8 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.warning("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(WARNING):
-            self._log(WARNING, msg, category, args, **kwargs)
+            kwargs['category'] = category
+            self._log(WARNING, msg, args, **kwargs)
 
     def warn(
         self, msg: str, category: DataCategory = DataCategory.PRIVATE, *args, **kwargs
@@ -126,7 +138,8 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.error("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(ERROR):
-            self._log(ERROR, msg, category, args, **kwargs)
+            kwargs['category'] = category
+            self._log(ERROR, msg, args, **kwargs)
 
     def critical(
         self, msg: str, category: DataCategory = DataCategory.PRIVATE, *args, **kwargs
@@ -140,7 +153,8 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.critical("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(CRITICAL):
-            self._log(CRITICAL, msg, category, args, **kwargs)
+            kwargs['category'] = category
+            self._log(CRITICAL, msg, args, **kwargs)
 
 
 _logging_basic_config_set_warning = """
