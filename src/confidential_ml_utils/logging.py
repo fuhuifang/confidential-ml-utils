@@ -56,14 +56,11 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
 
     def _log(self, level, msg, args, **kwargs):
         """
-        Note: Signature here matches superclass `_log` to avoid mismatch issues.
-        The `category` is thus assumed to be in `kwargs` and is popped
+        Note: Signature here consistent with superclass `_log` to avoid
+        mismatch issues. We pop `category` from `kwargs`, defaulting to
+        `DataCategory.PRIVATE` if not provided.
         """
-        try:
-            category = kwargs.pop("category")
-        except KeyError:
-            raise TypeError("Required argument `category` not provided")
-
+        category = kwargs.pop("category", DataCategory.PRIVATE)
         p = ""
         if category == DataCategory.PUBLIC:
             p = get_prefix()
