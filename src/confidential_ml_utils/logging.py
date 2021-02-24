@@ -62,7 +62,7 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
         try:
             category = kwargs.pop("category")
         except KeyError:
-            raise TypeError(f"Required argument `category` not provided")
+            raise TypeError("Required argument `category` not provided")
 
         p = ""
         if category == DataCategory.PUBLIC:
