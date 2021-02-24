@@ -83,7 +83,7 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.debug("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(DEBUG):
-            kwargs['category'] = category
+            kwargs["category"] = category
             self._log(DEBUG, msg, args, **kwargs)
 
     def info(
@@ -98,7 +98,7 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.info("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(INFO):
-            kwargs['category'] = category
+            kwargs["category"] = category
             self._log(INFO, msg, args, **kwargs)
 
     def warning(
@@ -113,7 +113,7 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.warning("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(WARNING):
-            kwargs['category'] = category
+            kwargs["category"] = category
             self._log(WARNING, msg, args, **kwargs)
 
     def warn(
@@ -138,7 +138,7 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.error("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(ERROR):
-            kwargs['category'] = category
+            kwargs["category"] = category
             self._log(ERROR, msg, args, **kwargs)
 
     def critical(
@@ -153,7 +153,7 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.critical("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(CRITICAL):
-            kwargs['category'] = category
+            kwargs["category"] = category
             self._log(CRITICAL, msg, args, **kwargs)
 
 
