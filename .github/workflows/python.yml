@@ -58,7 +58,7 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
-      if: always()
+      if: ${{ always() && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8' }}
 
     # This and the next step follow:
     # https://gist.github.com/alukach/6f3a371e9af600e417aca1b36806ad72

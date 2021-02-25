@@ -7,6 +7,7 @@ import pytest
 import re
 import sys
 from traceback import TracebackException
+import uuid
 
 
 from confidential_ml_utils.exceptions import (
@@ -63,6 +64,47 @@ def test_prefix_stack_trace_works_with_sys_exit():
 
     log_lines = file.getvalue()
     assert "SystemExit: 1" in log_lines
+
+
+def test_prefix_stack_trace_works_with_file_not_found():
+    file = io.StringIO()
+    file_name = str(uuid.uuid4())
+
+    @prefix_stack_trace(file, allow_list=["FileNotFoundError"])
+    def function():
+        with open(file_name) as f:
+            str(f)
+
+    with pytest.raises(FileNotFoundError):
+        function()
+
+    log_lines = file.getvalue()
+    assert f"SystemLog:No such file or directory: 'SystemLog:{file_name}'" in log_lines
+
+
+def test_prefix_stack_trace_replaces_exception_with_readonly_attribute():
+    class UnmodifiableError(Exception):
+        def __init__(self):
+            super().__init__()
+
+        @property
+        def unmodifiable(self):
+            return "you can't change me"
+
+    file = io.StringIO()
+
+    @prefix_stack_trace(file)
+    def function():
+        raise UnmodifiableError()
+
+    with pytest.raises(PublicRuntimeError):
+        function()
+
+    log_lines = file.getvalue()
+    assert (
+        "SystemLog: Obtained AttributeError when trying to scrub unmodifiable from UnmodifiableError"  # noqa: E501
+        in log_lines
+    )
 
 
 def test_prefix_stack_trace_succeeds_when_no_message():
