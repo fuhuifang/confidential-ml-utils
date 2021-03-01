@@ -49,7 +49,7 @@ jobs:
       if: always()
     - name: publish test results
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8' }}
-      uses: EnricoMi/publish-unit-test-result-action@v1.7
+      uses: EnricoMi/publish-unit-test-result-action@v1.9
       with:
         check_name: Unit Test Results
         github_token: ${{ secrets.GITHUB_TOKEN }}
