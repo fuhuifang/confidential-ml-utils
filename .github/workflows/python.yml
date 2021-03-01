@@ -24,7 +24,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Check License Lines
-      uses: kt3k/license_checker@v1.0.3
+      uses: kt3k/license_checker@v1.0.6
       if: ${{ matrix.os == 'ubuntu-latest' }}
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2.2.1
