@@ -54,16 +54,16 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
     def __init__(self, name: str):
         super().__init__(name)  # type: ignore
 
-    def _log(self, level, msg, category, args, **kwargs):
+    def _log(self, level, msg, args=None, exc_info=None, extra=None, stack_info=False, stacklevel=1, category=DataCategory.PRIVATE):
         p = ""
         if category == DataCategory.PUBLIC:
             p = get_prefix()
         super(ConfidentialLogger, self)._log(
-            level, msg, args, extra={"prefix": p}, **kwargs
+            level=level, msg=msg, args=args, exc_info=exc_info, extra={"prefix": p}, stack_info=stack_info, stacklevel=stacklevel
         )
-
+        
     def debug(
-        self, msg: str, category: DataCategory = DataCategory.PRIVATE, *args, **kwargs
+        self, msg: str, category=DataCategory.PRIVATE, *args, **kwargs
     ):
         """
         Log `msg % args` with severity `DEBUG`.
@@ -74,10 +74,10 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.debug("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(DEBUG):
-            self._log(DEBUG, msg, category, args, **kwargs)
+            self._log(DEBUG, msg=msg, args=args, category=category, **kwargs)
 
     def info(
-        self, msg: str, category: DataCategory = DataCategory.PRIVATE, *args, **kwargs
+        self, msg: str, category=DataCategory.PRIVATE, *args, **kwargs
     ):
         """
         Log `msg % args` with severity `INFO`.
@@ -88,10 +88,10 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.info("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(INFO):
-            self._log(INFO, msg, category, args, **kwargs)
+            self._log(INFO, msg=msg, args=args, category=category, **kwargs)
 
     def warning(
-        self, msg: str, category: DataCategory = DataCategory.PRIVATE, *args, **kwargs
+        self, msg: str, category=DataCategory.PRIVATE, *args, **kwargs
     ):
         """
         Log `msg % args` with severity `WARNING`.
@@ -102,20 +102,20 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.warning("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(WARNING):
-            self._log(WARNING, msg, category, args, **kwargs)
+            self._log(WARNING, msg=msg, args=args, category=category, **kwargs)
 
     def warn(
-        self, msg: str, category: DataCategory = DataCategory.PRIVATE, *args, **kwargs
+        self, msg: str, category=DataCategory.PRIVATE, *args, **kwargs
     ):
         warnings.warn(
             "The 'warn' method is deprecated, ue 'warning' instead",
             DeprecationWarning,
             2,
         )
-        self.warning(msg, category, *args, **kwargs)
+        self.warning(msg=msg, args=args, category=category, **kwargs)
 
     def error(
-        self, msg: str, category: DataCategory = DataCategory.PRIVATE, *args, **kwargs
+        self, msg: str, category=DataCategory.PRIVATE, *args, **kwargs
     ):
         """
         Log `msg % args` with severity `ERROR`.
@@ -126,10 +126,10 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.error("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(ERROR):
-            self._log(ERROR, msg, category, args, **kwargs)
+            self._log(ERROR, msg=msg, args=args, category=category, **kwargs)
 
     def critical(
-        self, msg: str, category: DataCategory = DataCategory.PRIVATE, *args, **kwargs
+        self, msg: str, category=DataCategory.PRIVATE, *args, **kwargs
     ):
         """
         Log `msg % args` with severity `CRITICAL`.
@@ -140,7 +140,7 @@ class ConfidentialLogger(logging.getLoggerClass()):  # type: ignore
             logger.critical("public data", category=DataCategory.PUBLIC)
         """
         if self.isEnabledFor(CRITICAL):
-            self._log(CRITICAL, msg, category, args, **kwargs)
+            self._log(CRITICAL, msg=msg, args=args, category=category, **kwargs)
 
 
 _logging_basic_config_set_warning = """
